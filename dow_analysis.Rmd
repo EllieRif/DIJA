@@ -1,0 +1,104 @@
+---
+title: "indicator1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+Times piece: https://www.nytimes.com/2021/01/01/upshot/why-markets-boomed-2020.html?action=click&block=more_in_recirc&impression_id=3541c180-50fa-11eb-a392-5d7cb72d0ff9&index=4&pgtype=Article&region=footer
+
+# # Import Libary
+```{r}
+library(tidyverse)
+library(readr)
+```
+# # read files
+
+```{r}
+#dow <- read_csv(file = "DJIA.csv", col_names = TRUE, cols(
+ # DATE = col_date(format = ""),
+#  DJIA = col_double()
+#))
+
+dow <- read_csv(file = "^DJI.csv", col_names = TRUE)
+
+iunp <- read_csv("IURSA.csv")
+
+unp <- read_csv("UNRATE.csv")
+
+
+```
+# # Separating and Filtering DJIA
+
+```{r}
+dow_month_avg <- dow %>% separate(col = Date, into = c("year", "month", 'day'), convert = TRUE) %>% 
+  mutate(yearmonth = year+month) %>% 
+  filter(year>=1986) %>% 
+  filter(yearmonth != 2032) %>% 
+  group_by(year, month) %>% 
+  drop_na() %>% 
+  summarise(mn_avg = mean(`Adj Close`))
+```
+# # Monthly avg for UNP
+```{r}
+
+unp_month_avg <- unp %>% 
+  separate(col = DATE, into = c("year", "month", 'day')) %>% 
+  filter(year>=1986) %>% 
+  group_by(year, month) %>% 
+  drop_na() %>% 
+  summarise(mn_avg = mean(UNRATE))
+
+
+
+```
+
+# # DF containing both
+
+```{r}
+
+dow_unp <- data.frame(
+  
+  year = dow_month_avg$year, 
+  month = dow_month_avg$month,
+  avg_dow = dow_month_avg$mn_avg,
+  avg_unp = unp_month_avg$mn_avg
+  
+)
+dow_unp <- dow_unp %>% 
+  unite(col = "date", year, month, sep = "-")
+
+dow_unp %>% ggplot() + 
+  geom_point(mapping = aes(x = avg_dow, y = avg_unp))
+
+dow_unp %>% 
+  ggplot() + 
+  geom_point(mapping = aes(x = date, y = (avg_dow/1000)), color = "red") + 
+  geom_point(mapping = aes(x = date, y = (avg_unp)))
+  
+
+```
+
